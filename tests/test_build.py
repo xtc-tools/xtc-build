@@ -60,6 +60,22 @@ def test_each_artifact_can_be_built_and_shared_library_can_be_loaded(
 
 
 @requires_toolchain
+def test_artifacts_build_themselves_and_return_their_outputs(tmp_path: Path) -> None:
+    context, helper, core, library = declarations(tmp_path)
+
+    assert helper.build(context) == helper.output(context)
+    assert helper.output(context).is_file()
+
+    assert core.build(context) == core.output(context)
+    assert core.output(context).is_file()
+
+    assert library.build(context) == library.output(context)
+    assert library.output(context).is_file()
+    loaded = ctypes.CDLL(str(library.output(context)))
+    assert loaded.answer() == 42
+
+
+@requires_toolchain
 def test_changed_command_rebuilds_an_existing_output(tmp_path: Path) -> None:
     source = tmp_path / "value.c"
     source.write_text("int value(void) { return VALUE; }\n", encoding="utf-8")
