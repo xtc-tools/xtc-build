@@ -76,6 +76,40 @@ def test_artifacts_build_themselves_and_return_their_outputs(tmp_path: Path) -> 
 
 
 @requires_toolchain
+def test_shared_library_can_depend_on_built_shared_library(tmp_path: Path) -> None:
+    base_source = tmp_path / "base.c"
+    dependent_source = tmp_path / "dependent.c"
+    base_source.write_text("int base_value(void) { return 40; }\n", encoding="utf-8")
+    dependent_source.write_text(
+        "int base_value(void);\n"
+        "int dependent_value(void) { return base_value() + 2; }\n",
+        encoding="utf-8",
+    )
+    base_object = Object("base", base_source, pic=True)
+    dependent_object = Object("dependent", dependent_source, pic=True)
+    base = SharedLibrary("base", objects=[base_object])
+    dependent = SharedLibrary(
+        "dependent",
+        objects=[dependent_object],
+        libraries=[base],
+    )
+    context = BuildContext(
+        tmp_path / "build",
+        toolchain=GnuToolchain(cc="gcc", ar="ar"),
+    )
+
+    graph = context.graph(dependent)
+    assert base in graph.dependencies(dependent)
+    assert str(base.output(context)) in graph.command(dependent).argv
+
+    rebuilt = context.build(dependent)
+    assert rebuilt[-2:] == (base, dependent)
+    loaded = ctypes.CDLL(str(dependent.output(context)))
+    loaded.dependent_value.restype = ctypes.c_int
+    assert loaded.dependent_value() == 42
+
+
+@requires_toolchain
 def test_changed_command_rebuilds_an_existing_output(tmp_path: Path) -> None:
     source = tmp_path / "value.c"
     source.write_text("int value(void) { return VALUE; }\n", encoding="utf-8")
