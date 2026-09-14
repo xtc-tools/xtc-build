@@ -22,6 +22,7 @@ For development:
 ```sh
 python -m pip install -e '.[dev]'
 make check
+make coverage  # writes the HTML report to htmlcov/
 ```
 
 ## Example

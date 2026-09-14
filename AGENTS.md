@@ -18,7 +18,8 @@ make check
 
 Run `make check` before submitting changes. Individual checks are available as
 `make check-format`, `make check-lint`, `make check-type`, and
-`make check-pytest`. Use `ruff format` to apply formatting.
+`make check-pytest`. Use `ruff format` to apply formatting and `make coverage`
+to generate terminal and HTML coverage reports.
 
 Some integration tests require `gcc`, `ar`, and GNU Make; they skip when those
 tools are unavailable.
