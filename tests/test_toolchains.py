@@ -15,6 +15,18 @@ def test_default_toolchain_uses_system_c_tools(tmp_path: Path) -> None:
     assert archive.command(context).argv[0] == "ar"
 
 
+def test_linux_shared_library_commands(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(toolchains.sys, "platform", "linux")
+    context = BuildContext(tmp_path, GnuToolchain())
+    obj = Object("member", "member.c", pic=True)
+    library = SharedLibrary("example", objects=[obj])
+
+    assert library.output(context).name == "libexample.so"
+    assert "-shared" in library.command(context).argv
+
+
 def test_darwin_shared_library_commands(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
