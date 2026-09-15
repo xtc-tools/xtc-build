@@ -13,9 +13,21 @@ directory.
 
 ## Installation
 
+Install the latest release from [PyPI](https://pypi.org/project/xtc-build/):
+
 ```sh
-python -m pip install .
+python -m pip install xtc-build
 ```
+
+Development versions built from `main` are available from
+[TestPyPI](https://test.pypi.org/project/xtc-build/) for testing:
+
+```sh
+python -m pip install --pre --upgrade \
+  --index-url https://test.pypi.org/simple/ xtc-build
+```
+
+## Development installation
 
 Development requires `cc`, `ar`, and `make`. On macOS, the system-provided
 Apple Clang toolchain is sufficient; Homebrew is not required. Missing tools
