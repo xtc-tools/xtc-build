@@ -22,12 +22,12 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-test = ["pytest>=7"]
+test = ["pytest==9.1.1"]
 dev = [
   "coverage>=7",
-  "pyright>=1.1.400",
-  "pytest>=7",
-  "ruff>=0.15",
+  "pyright==1.1.414",
+  "pytest==9.1.1",
+  "ruff==0.16.7",
 ]
 
 [tool.setuptools.packages.find]
