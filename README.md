@@ -134,6 +134,21 @@ with `Object(inputs=[...])`.
 - A project/grouping abstraction may be added later as an optional convenience,
   but is not required by the core model.
 
+## Versioning
+
+Package versions are derived from Git tags by `setuptools-scm`. Release tags
+must use the `xtc-build-vX.Y.Z` form, for example:
+
+Create an annotated tag for each release:
+
+```sh
+git tag -a xtc-build-v1.2.3 -m "xtc-build 1.2.3"
+```
+
+A build at that tag has version `1.2.3`; later commits receive a development
+version derived from the tag and Git revision. Builds without Git metadata use
+`0.0.0` as a fallback.
+
 ## License
 
 BSD 3-Clause. See [LICENSE](LICENSE).
