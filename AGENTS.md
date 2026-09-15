@@ -17,12 +17,13 @@ make check
 ```
 
 Run `make check` before submitting changes. Individual checks are available as
-`make check-format`, `make check-lint`, `make check-type`, and
-`make check-pytest`. Use `ruff format` to apply formatting and `make coverage`
-to generate terminal and HTML coverage reports.
+`make check-format`, `make check-lint`, `make check-type`, `make check-pytest`,
+and `make check-pytest-coverage`. Use `ruff format` to apply formatting.
+Coverage checks require 100% line and branch coverage and generate terminal and
+HTML reports.
 
-Some integration tests require `gcc`, `ar`, and GNU Make; they skip when those
-tools are unavailable.
+The test suite requires `gcc`, `ar`, and GNU Make. Missing build tools are test
+errors rather than skips.
 
 ## Design constraints
 

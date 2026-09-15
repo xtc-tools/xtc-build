@@ -17,13 +17,17 @@ directory.
 python -m pip install .
 ```
 
-For development:
+Development requires `gcc`, `ar`, and GNU Make. Missing tools are reported as
+test errors rather than skipped tests.
 
 ```sh
 python -m pip install -e '.[dev]'
 make check
-make coverage  # writes the HTML report to htmlcov/
 ```
+
+The full check requires 100% line and branch coverage and writes an HTML report
+to `htmlcov/`. Use `make check-pytest` to run pytest without collecting
+coverage.
 
 ## Example
 

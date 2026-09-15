@@ -1,7 +1,6 @@
 """Small declarative C build graphs for Python."""
 
-from importlib.metadata import PackageNotFoundError, version
-
+from ._version import resolve_version
 from .artifacts import Archive, ExternalLibrary, Object, SharedLibrary
 from .command import Command
 from .context import BuildContext
@@ -20,8 +19,4 @@ __all__ = [
     "SharedLibrary",
 ]
 
-try:
-    __version__ = version("xtc-build")
-except PackageNotFoundError:
-    # The package may be imported directly from a source checkout.
-    __version__ = "0.0.0"
+__version__ = resolve_version()

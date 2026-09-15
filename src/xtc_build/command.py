@@ -32,3 +32,7 @@ class Command:
         object.__setattr__(self, "inputs", tuple(Path(path) for path in self.inputs))
         object.__setattr__(self, "outputs", tuple(Path(path) for path in self.outputs))
         object.__setattr__(self, "env", dict(self.env))
+        if not self.argv:
+            raise ValueError("a command needs at least one argument")
+        if not self.outputs:
+            raise ValueError("a build command needs at least one output")

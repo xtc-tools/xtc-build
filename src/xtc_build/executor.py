@@ -31,7 +31,7 @@ def _signature_path(command: Command) -> Path:
 
 
 def _is_stale(command: Command, dependency_rebuilt: bool) -> bool:
-    if dependency_rebuilt or not command.outputs:
+    if dependency_rebuilt:
         return True
     if any(not output.exists() for output in command.outputs):
         return True

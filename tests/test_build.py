@@ -1,18 +1,10 @@
 from __future__ import annotations
 
 import ctypes
-import shutil
 import subprocess
 from pathlib import Path
 
-import pytest
-
 from xtc_build import Archive, BuildContext, GnuToolchain, Object, SharedLibrary
-
-HAS_TOOLCHAIN = bool(shutil.which("gcc") and shutil.which("ar"))
-requires_toolchain = pytest.mark.skipif(
-    not HAS_TOOLCHAIN, reason="GCC and ar are required"
-)
 
 
 def declarations(
@@ -32,14 +24,11 @@ def declarations(
     library = SharedLibrary("answer", objects=[api], archives=[core])
     context = BuildContext(
         tmp_path / "build",
-        toolchain=GnuToolchain(
-            cc=shutil.which("gcc") or "gcc", ar=shutil.which("ar") or "ar"
-        ),
+        toolchain=GnuToolchain(cc="gcc", ar="ar"),
     )
     return context, helper, core, library
 
 
-@requires_toolchain
 def test_each_artifact_can_be_built_and_shared_library_can_be_loaded(
     tmp_path: Path,
 ) -> None:
@@ -59,7 +48,6 @@ def test_each_artifact_can_be_built_and_shared_library_can_be_loaded(
     assert loaded.answer() == 42
 
 
-@requires_toolchain
 def test_artifacts_build_themselves_and_return_their_outputs(tmp_path: Path) -> None:
     context, helper, core, library = declarations(tmp_path)
 
@@ -75,7 +63,6 @@ def test_artifacts_build_themselves_and_return_their_outputs(tmp_path: Path) -> 
     assert loaded.answer() == 42
 
 
-@requires_toolchain
 def test_shared_library_can_depend_on_built_shared_library(tmp_path: Path) -> None:
     base_source = tmp_path / "base.c"
     dependent_source = tmp_path / "dependent.c"
@@ -109,7 +96,6 @@ def test_shared_library_can_depend_on_built_shared_library(tmp_path: Path) -> No
     assert loaded.dependent_value() == 42
 
 
-@requires_toolchain
 def test_changed_command_rebuilds_an_existing_output(tmp_path: Path) -> None:
     source = tmp_path / "value.c"
     source.write_text("int value(void) { return VALUE; }\n", encoding="utf-8")
@@ -121,8 +107,6 @@ def test_changed_command_rebuilds_an_existing_output(tmp_path: Path) -> None:
     assert context.build(changed) == (changed,)
 
 
-@requires_toolchain
-@pytest.mark.skipif(not shutil.which("make"), reason="make is required")
 def test_generated_makefile_builds_the_same_graph(tmp_path: Path) -> None:
     context, _, _, library = declarations(tmp_path)
     makefile = context.write_makefile(tmp_path / "build.mk", targets=[library])
