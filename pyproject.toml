@@ -21,8 +21,7 @@ classifiers = [
 ]
 dependencies = []
 
-[project.optional-dependencies]
-test = ["pytest==9.1.1"]
+[dependency-groups]
 dev = [
   "coverage>=7",
   "pyright==1.1.414",

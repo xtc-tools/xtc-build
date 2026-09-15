@@ -1,12 +1,13 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help check check-format check-lint check-type check-pytest
+.PHONY: help check check-lock check-format check-lint check-type check-pytest
 .PHONY: check-pytest-coverage coverage
 
 help:
 	@printf '%s\n' \
 	  'help                   Show this help message (default)' \
 	  'check                  Run all checks' \
+	  'check-lock             Check that uv.lock is up to date' \
 	  'check-format           Check source formatting with Ruff' \
 	  'check-lint             Check source linting with Ruff' \
 	  'check-type             Check static types with Pyright' \
@@ -14,7 +15,10 @@ help:
 	  'check-pytest-coverage  Run pytest and require 100% coverage' \
 	  'coverage               Alias for check-pytest-coverage'
 
-check: check-format check-lint check-type check-pytest-coverage
+check: check-lock check-format check-lint check-type check-pytest-coverage
+
+check-lock:
+	uv lock --check
 
 check-format:
 	ruff format --check

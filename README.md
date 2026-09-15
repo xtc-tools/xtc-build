@@ -18,11 +18,29 @@ python -m pip install .
 ```
 
 Development requires `gcc`, `ar`, and GNU Make. Missing tools are reported as
-test errors rather than skipped tests.
+test errors rather than skipped tests. Install `uv` from the
+[official installation page](https://docs.astral.sh/uv/getting-started/installation/),
+or directly with:
 
 ```sh
-python -m pip install -e '.[dev]'
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Then set up the development environment:
+
+```sh
+uv sync
+source .venv/bin/activate
 make check
+```
+
+`uv sync` creates the virtual environment, installs the project in editable
+mode, installs the default `dev` dependency group, and synchronizes everything
+with the committed `uv.lock`. Alternatively, run checks without activating the
+environment:
+
+```sh
+uv run make check
 ```
 
 The full check requires 100% line and branch coverage and writes an HTML report

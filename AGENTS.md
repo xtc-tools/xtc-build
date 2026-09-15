@@ -12,13 +12,19 @@
 The project supports Python 3.10 and newer.
 
 ```sh
-python -m pip install -e '.[dev]'
+uv sync
+source .venv/bin/activate
 make check
 ```
 
+The `dev` dependency group is installed by default. Keep `uv.lock` synchronized
+with `pyproject.toml`; `uv run make check` can be used without activating the
+virtual environment.
+
 Run `make check` before submitting changes. Individual checks are available as
-`make check-format`, `make check-lint`, `make check-type`, `make check-pytest`,
-and `make check-pytest-coverage`. Use `ruff format` to apply formatting.
+`make check-lock`, `make check-format`, `make check-lint`, `make check-type`,
+`make check-pytest`, and `make check-pytest-coverage`. Use `ruff format` to
+apply formatting.
 Coverage checks require 100% line and branch coverage and generate terminal and
 HTML reports.
 
