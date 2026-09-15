@@ -1,7 +1,15 @@
 """Small declarative C build graphs for Python."""
 
 from ._version import resolve_version
-from .artifacts import Archive, ExternalLibrary, Object, SharedLibrary
+from .artifacts import (
+    Archive,
+    ExternalArchive,
+    ExternalLibrary,
+    ExternalObject,
+    ExternalSharedLibrary,
+    Object,
+    SharedLibrary,
+)
 from .command import Command
 from .context import BuildContext
 from .graph import BuildGraph, DependencyCycleError
@@ -13,7 +21,10 @@ __all__ = [
     "BuildGraph",
     "Command",
     "DependencyCycleError",
+    "ExternalArchive",
     "ExternalLibrary",
+    "ExternalObject",
+    "ExternalSharedLibrary",
     "GnuToolchain",
     "Object",
     "SharedLibrary",

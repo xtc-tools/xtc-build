@@ -6,7 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from xtc_build import BuildContext, Command, GnuToolchain, Object
+from xtc_build import (
+    Archive,
+    BuildContext,
+    Command,
+    ExternalObject,
+    GnuToolchain,
+    Object,
+)
 
 
 class NoOutputToolchain(GnuToolchain):
@@ -40,6 +47,15 @@ def test_command_requires_an_argv_and_output() -> None:
         Command(argv=(), inputs=(), outputs=(Path("output"),))
     with pytest.raises(ValueError, match="at least one output"):
         Command(argv=("command",), inputs=(), outputs=())
+
+
+def test_executor_reports_a_missing_external_object(tmp_path: Path) -> None:
+    context = BuildContext(tmp_path / "build")
+    external = ExternalObject(tmp_path / "missing.o")
+    archive = Archive("missing", objects=[external])
+
+    with pytest.raises(FileNotFoundError, match="build input does not exist"):
+        context.build(archive)
 
 
 def test_executor_reports_a_missing_initial_input(tmp_path: Path) -> None:

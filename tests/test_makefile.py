@@ -7,6 +7,9 @@ from xtc_build import (
     Archive,
     BuildContext,
     Command,
+    ExternalArchive,
+    ExternalObject,
+    ExternalSharedLibrary,
     GnuToolchain,
     Object,
     SharedLibrary,
@@ -46,6 +49,34 @@ def test_makefile_rejects_duplicate_target_aliases(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="distinct names"):
         context.write_makefile(tmp_path / "build.mk", targets=[archive, shared])
+
+
+def test_makefile_tracks_external_inputs_without_generating_rules(
+    tmp_path: Path,
+) -> None:
+    context = BuildContext(tmp_path / "build")
+    object_path = tmp_path / "prebuilt.o"
+    archive_path = tmp_path / "prebuilt.a"
+    shared_path = tmp_path / "prebuilt.so"
+    archive = Archive("object-input", objects=[ExternalObject(object_path)])
+    shared = SharedLibrary(
+        "archive-input",
+        archives=[ExternalArchive(archive_path, pic=True)],
+        libraries=[ExternalSharedLibrary(shared_path)],
+    )
+
+    makefile = context.write_makefile(
+        tmp_path / "build.mk",
+        targets=[archive, shared],
+    )
+
+    text = makefile.read_text(encoding="utf-8")
+    assert str(object_path) in text
+    assert str(archive_path) in text
+    assert str(shared_path) in text
+    assert f"\n{object_path}:" not in text
+    assert f"\n{archive_path}:" not in text
+    assert f"\n{shared_path}:" not in text
 
 
 def test_makefile_without_objects_has_no_depfile_include(tmp_path: Path) -> None:

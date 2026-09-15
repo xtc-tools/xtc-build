@@ -7,7 +7,9 @@ from xtc_build import (
     Archive,
     BuildContext,
     DependencyCycleError,
+    ExternalArchive,
     ExternalLibrary,
+    ExternalObject,
     Object,
     SharedLibrary,
 )
@@ -59,6 +61,13 @@ def test_artifact_validation_and_optional_pic_check() -> None:
     obj = Object("plain", "plain.c")
     library = SharedLibrary("allowed", objects=[obj], require_pic=False)
     assert library.objects == (obj,)
+
+
+def test_external_inputs_require_an_explicit_pic_declaration() -> None:
+    with pytest.raises(ValueError, match="requires PIC"):
+        SharedLibrary("object-input", objects=[ExternalObject("input.o")])
+    with pytest.raises(ValueError, match="requires PIC"):
+        SharedLibrary("archive-input", archives=[ExternalArchive("input.a")])
 
 
 def test_context_rejects_an_empty_target_list(tmp_path: Path) -> None:

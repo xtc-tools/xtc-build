@@ -4,7 +4,15 @@ import ctypes
 import subprocess
 from pathlib import Path
 
-from xtc_build import Archive, BuildContext, Object, SharedLibrary
+from xtc_build import (
+    Archive,
+    BuildContext,
+    ExternalArchive,
+    ExternalObject,
+    ExternalSharedLibrary,
+    Object,
+    SharedLibrary,
+)
 
 
 def declarations(
@@ -88,6 +96,90 @@ def test_shared_library_can_depend_on_built_shared_library(tmp_path: Path) -> No
     loaded = ctypes.CDLL(str(dependent.output(context)))
     loaded.dependent_value.restype = ctypes.c_int
     assert loaded.dependent_value() == 42
+
+
+def test_external_shared_library_is_an_input_only_dependency(tmp_path: Path) -> None:
+    base_source = tmp_path / "external-base.c"
+    base_source.write_text(
+        "int external_base(void) { return 40; }\n",
+        encoding="utf-8",
+    )
+    context = BuildContext(tmp_path / "build")
+    base_object = Object("external-base", base_source, pic=True)
+    base = SharedLibrary("external-base", objects=[base_object])
+    base.build(context)
+
+    dependent_source = tmp_path / "external-dependent.c"
+    dependent_source.write_text(
+        "int external_base(void);\n"
+        "int external_dependent(void) { return external_base() + 2; }\n",
+        encoding="utf-8",
+    )
+    dependent_object = Object("external-dependent", dependent_source, pic=True)
+    external = ExternalSharedLibrary(base.output(context))
+    dependent = SharedLibrary(
+        "external-dependent",
+        objects=[dependent_object],
+        libraries=[external],
+    )
+
+    graph = context.graph(dependent)
+    assert external.name == str(base.output(context))
+    assert graph.topological_order() == (dependent_object, dependent)
+    assert external.output(context) in graph.command(dependent).inputs
+
+    dependent.build(context)
+    loaded = ctypes.CDLL(str(dependent.output(context)))
+    loaded.external_dependent.restype = ctypes.c_int
+    assert loaded.external_dependent() == 42
+
+
+def test_external_objects_and_archives_are_input_only(tmp_path: Path) -> None:
+    helper_source = tmp_path / "external-helper.c"
+    helper_source.write_text(
+        "int external_helper(void) { return 40; }\n", encoding="utf-8"
+    )
+    object_path = tmp_path / "external-helper.o"
+    subprocess.run(
+        ["cc", "-fPIC", "-c", str(helper_source), "-o", str(object_path)],
+        check=True,
+    )
+
+    context = BuildContext(tmp_path / "build")
+    external_object = ExternalObject(object_path, pic=True)
+    archive = Archive("external", objects=[external_object])
+    assert external_object.name == str(object_path)
+    assert context.graph(archive).topological_order() == (archive,)
+    assert object_path in graph_command_inputs(context, archive)
+    archive.build(context)
+
+    api_source = tmp_path / "external-api.c"
+    api_source.write_text(
+        "int external_helper(void);\n"
+        "int external_answer(void) { return external_helper() + 2; }\n",
+        encoding="utf-8",
+    )
+    api = Object("external-api", api_source, pic=True)
+    external_archive = ExternalArchive(archive.output(context), pic=True)
+    library = SharedLibrary(
+        "external-answer",
+        objects=[api],
+        archives=[external_archive],
+    )
+    assert external_archive.name == str(archive.output(context))
+    assert context.graph(library).topological_order() == (api, library)
+    assert external_archive.output(context) in graph_command_inputs(context, library)
+
+    library.build(context)
+    loaded = ctypes.CDLL(str(library.output(context)))
+    loaded.external_answer.restype = ctypes.c_int
+    assert loaded.external_answer() == 42
+
+
+def graph_command_inputs(
+    context: BuildContext, target: Archive | SharedLibrary
+) -> tuple[Path, ...]:
+    return context.graph(target).command(target).inputs
 
 
 def test_changed_command_rebuilds_an_existing_output(tmp_path: Path) -> None:

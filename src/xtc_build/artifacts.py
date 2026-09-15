@@ -36,6 +36,41 @@ class ExternalLibrary:
 
 
 @dataclass(frozen=True)
+class ExternalSharedLibrary:
+    """A shared library file produced outside this build graph."""
+
+    path: Pathish
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "path", Path(self.path))
+
+    @property
+    def name(self) -> str:
+        return str(self.path)
+
+    def output(self, context: BuildContext) -> Path:
+        return Path(self.path)
+
+
+@dataclass(frozen=True)
+class ExternalObject:
+    """An object file produced outside this build graph."""
+
+    path: Pathish
+    pic: bool = False
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "path", Path(self.path))
+
+    @property
+    def name(self) -> str:
+        return str(self.path)
+
+    def output(self, context: BuildContext) -> Path:
+        return Path(self.path)
+
+
+@dataclass(frozen=True)
 class Object:
     """One C translation unit compiled to an object file."""
 
@@ -73,11 +108,29 @@ class Object:
 
 
 @dataclass(frozen=True)
+class ExternalArchive:
+    """A static archive produced outside this build graph."""
+
+    path: Pathish
+    pic: bool = False
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "path", Path(self.path))
+
+    @property
+    def name(self) -> str:
+        return str(self.path)
+
+    def output(self, context: BuildContext) -> Path:
+        return Path(self.path)
+
+
+@dataclass(frozen=True)
 class Archive:
     """A static archive composed of object files."""
 
     name: str
-    objects: Sequence[Object]
+    objects: Sequence[Object | ExternalObject]
     archive_flags: Sequence[str] = ()
 
     def __post_init__(self) -> None:
@@ -86,7 +139,7 @@ class Archive:
         object.__setattr__(self, "archive_flags", tuple(self.archive_flags))
 
     def dependencies(self) -> tuple[Artifact, ...]:
-        return tuple(self.objects)
+        return tuple(obj for obj in self.objects if isinstance(obj, Object))
 
     def output(self, context: BuildContext) -> Path:
         return context.toolchain.archive_output(self, context)
@@ -104,9 +157,9 @@ class SharedLibrary:
     """A shared library linked from objects, archives, and libraries."""
 
     name: str
-    objects: Sequence[Object] = ()
-    archives: Sequence[Archive] = ()
-    libraries: Sequence[ExternalLibrary | SharedLibrary] = ()
+    objects: Sequence[Object | ExternalObject] = ()
+    archives: Sequence[Archive | ExternalArchive] = ()
+    libraries: Sequence[ExternalLibrary | ExternalSharedLibrary | SharedLibrary] = ()
     link_flags: Sequence[str] = ()
     require_pic: bool = True
 
@@ -117,11 +170,15 @@ class SharedLibrary:
         object.__setattr__(self, "libraries", tuple(self.libraries))
         object.__setattr__(self, "link_flags", tuple(self.link_flags))
         if self.require_pic:
-            objects = (
-                *self.objects,
-                *(obj for archive in self.archives for obj in archive.objects),
+            pic_inputs: list[Object | ExternalObject | ExternalArchive] = list(
+                self.objects
             )
-            non_pic = [obj.name for obj in objects if not obj.pic]
+            for archive in self.archives:
+                if isinstance(archive, Archive):
+                    pic_inputs.extend(archive.objects)
+                else:
+                    pic_inputs.append(archive)
+            non_pic = [item.name for item in pic_inputs if not item.pic]
             if non_pic:
                 names = ", ".join(non_pic)
                 raise ValueError(
@@ -129,12 +186,16 @@ class SharedLibrary:
                 )
 
     def dependencies(self) -> tuple[Artifact, ...]:
+        built_objects = tuple(obj for obj in self.objects if isinstance(obj, Object))
+        built_archives = tuple(
+            archive for archive in self.archives if isinstance(archive, Archive)
+        )
         built_libraries = tuple(
             dependency
             for dependency in self.libraries
             if isinstance(dependency, SharedLibrary)
         )
-        return (*self.objects, *self.archives, *built_libraries)
+        return (*built_objects, *built_archives, *built_libraries)
 
     def output(self, context: BuildContext) -> Path:
         return context.toolchain.shared_library_output(self, context)

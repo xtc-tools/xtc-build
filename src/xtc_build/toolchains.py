@@ -7,7 +7,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from .artifacts import Archive, ExternalLibrary, Object, SharedLibrary
+from .artifacts import (
+    Archive,
+    ExternalLibrary,
+    ExternalSharedLibrary,
+    Object,
+    SharedLibrary,
+)
 from .command import Command
 
 if TYPE_CHECKING:
@@ -100,17 +106,34 @@ class GnuToolchain:
         self, library: SharedLibrary, context: BuildContext
     ) -> Command:
         output = self.shared_library_output(library, context)
-        artifact_inputs = tuple(dep.output(context) for dep in library.dependencies())
+        artifact_inputs = (
+            *(obj.output(context) for obj in library.objects),
+            *(archive.output(context) for archive in library.archives),
+            *(
+                dependency.output(context)
+                for dependency in library.libraries
+                if not isinstance(dependency, ExternalLibrary)
+            ),
+        )
         argv = [self.cc]
         argv.append("-dynamiclib" if sys.platform == "darwin" else "-shared")
         argv.extend(["-o", str(output)])
         argv.extend(str(obj.output(context)) for obj in library.objects)
         argv.extend(str(archive.output(context)) for archive in library.archives)
+        runtime_paths: list[Path] = []
         for dependency in library.libraries:
             if isinstance(dependency, ExternalLibrary):
                 argv.extend(dependency.link_flags)
             else:
                 argv.append(str(dependency.output(context)))
+                if (
+                    isinstance(dependency, ExternalSharedLibrary)
+                    and sys.platform != "win32"
+                ):
+                    runtime_path = dependency.output(context).resolve().parent
+                    if runtime_path not in runtime_paths:
+                        runtime_paths.append(runtime_path)
+        argv.extend(f"-Wl,-rpath,{path}" for path in runtime_paths)
         argv.extend(library.link_flags)
         return Command(
             argv=tuple(argv),

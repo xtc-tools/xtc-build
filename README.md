@@ -129,6 +129,43 @@ The immediate executor compares input and output timestamps and stores a
 command fingerprint beside each output. Changing compiler flags therefore
 causes a rebuild even when source timestamps did not change.
 
+## Prebuilt inputs
+
+Object files and static archives produced outside the graph can be declared as
+input-only artifacts:
+
+```python
+from xtc_build import (
+    Archive,
+    ExternalArchive,
+    ExternalObject,
+    ExternalSharedLibrary,
+    SharedLibrary,
+)
+
+prebuilt_object = ExternalObject("generated/helper.o", pic=True)
+archive = Archive("core", objects=[prebuilt_object])
+
+prebuilt_archive = ExternalArchive("vendor/libsupport.a", pic=True)
+prebuilt_shared = ExternalSharedLibrary("vendor/libdependency.so")
+library = SharedLibrary(
+    "example",
+    objects=[api],
+    archives=[prebuilt_archive],
+    libraries=[prebuilt_shared],
+)
+```
+
+`ExternalObject`, `ExternalArchive`, and `ExternalSharedLibrary` have no build
+command and are not graph nodes. Their exact paths, including extensions, are
+explicit command inputs and Make prerequisites. They must exist before
+immediate execution or be produced independently before Make needs them. Set
+`pic=True` when an object or archive is suitable for linking into a shared
+library. On Linux and macOS, each external shared library's resolved parent
+directory is added to the linked library's runtime search path. Windows does
+not support embedded rpaths, so its DLL search path must be configured at
+runtime.
+
 ## Inspecting the graph
 
 ```python
