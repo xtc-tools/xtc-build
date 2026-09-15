@@ -26,9 +26,11 @@ or directly with:
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-Then set up the development environment:
+Then clone the repository and set up the development environment:
 
 ```sh
+git clone git@github.com:xtc-tools/xtc-build.git
+cd xtc-build
 uv sync
 source .venv/bin/activate
 make check
