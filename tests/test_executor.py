@@ -90,6 +90,22 @@ def test_executor_recovers_from_a_corrupt_signature(tmp_path: Path) -> None:
     assert context.build(obj) == (obj,)
 
 
+def test_executor_rebuilds_when_an_input_is_added(tmp_path: Path) -> None:
+    source = tmp_path / "source.c"
+    source.write_text("int value;\n", encoding="utf-8")
+    context = BuildContext(tmp_path / "build")
+    initial = Object("source", source)
+    context.build(initial)
+
+    header = tmp_path / "older-header.h"
+    header.write_text("/* input */\n", encoding="utf-8")
+    output_time = initial.output(context).stat().st_mtime_ns
+    os.utime(header, ns=(output_time - 1, output_time - 1))
+    with_input = Object("source", source, inputs=[header])
+
+    assert context.build(with_input) == (with_input,)
+
+
 def test_executor_rebuilds_when_an_input_is_newer(tmp_path: Path) -> None:
     source = tmp_path / "source.c"
     source.write_text("int value;\n", encoding="utf-8")

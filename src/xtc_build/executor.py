@@ -18,6 +18,7 @@ def _signature(command: Command) -> str:
         "argv": command.argv,
         "cwd": str(command.cwd) if command.cwd else None,
         "env": sorted(command.env.items()),
+        "inputs": [str(path) for path in command.inputs],
         "outputs": [str(path) for path in command.outputs],
         "remove_outputs_first": command.remove_outputs_first,
     }

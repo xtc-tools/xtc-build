@@ -141,8 +141,9 @@ rebuilt = ctx.build(library)
 ```
 
 The immediate executor compares input and output timestamps and stores a
-command fingerprint beside each output. Changing compiler flags therefore
-causes a rebuild even when source timestamps did not change.
+fingerprint of each command, including its ordered input and output paths,
+beside the output. Changing compiler flags or declared inputs therefore causes
+a rebuild even when source timestamps did not change.
 
 ## Prebuilt inputs
 
