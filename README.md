@@ -198,6 +198,15 @@ After all checks pass, pushes to `main` publish development distributions to
 `pypi` GitHub environments; those trusted publishers must be configured on the
 corresponding package indexes before the jobs can authenticate.
 
+Published versions can be inspected through the package-index JSON APIs:
+
+```sh
+curl -fsSL https://pypi.org/pypi/xtc-build/json \
+  | jq -r '.releases | keys[]'
+curl -fsSL https://test.pypi.org/pypi/xtc-build/json \
+  | jq -r '.releases | keys[]'
+```
+
 ## License
 
 BSD 3-Clause. See [LICENSE](LICENSE).
