@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class GnuToolchain:
-    """A GCC- or Clang-compatible C toolchain."""
+    """A GCC- or Clang-compatible C toolchain using system tools by default."""
 
     cc: str = "cc"
     ar: str = "ar"

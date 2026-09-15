@@ -4,7 +4,7 @@ import ctypes
 import subprocess
 from pathlib import Path
 
-from xtc_build import Archive, BuildContext, GnuToolchain, Object, SharedLibrary
+from xtc_build import Archive, BuildContext, Object, SharedLibrary
 
 
 def declarations(
@@ -22,10 +22,7 @@ def declarations(
     api = Object("api", api_source, pic=True)
     core = Archive("core", [helper])
     library = SharedLibrary("answer", objects=[api], archives=[core])
-    context = BuildContext(
-        tmp_path / "build",
-        toolchain=GnuToolchain(cc="gcc", ar="ar"),
-    )
+    context = BuildContext(tmp_path / "build")
     return context, helper, core, library
 
 
@@ -80,10 +77,7 @@ def test_shared_library_can_depend_on_built_shared_library(tmp_path: Path) -> No
         objects=[dependent_object],
         libraries=[base],
     )
-    context = BuildContext(
-        tmp_path / "build",
-        toolchain=GnuToolchain(cc="gcc", ar="ar"),
-    )
+    context = BuildContext(tmp_path / "build")
 
     graph = context.graph(dependent)
     assert base in graph.dependencies(dependent)
@@ -99,7 +93,7 @@ def test_shared_library_can_depend_on_built_shared_library(tmp_path: Path) -> No
 def test_changed_command_rebuilds_an_existing_output(tmp_path: Path) -> None:
     source = tmp_path / "value.c"
     source.write_text("int value(void) { return VALUE; }\n", encoding="utf-8")
-    context = BuildContext(tmp_path / "build", GnuToolchain(cc="gcc", ar="ar"))
+    context = BuildContext(tmp_path / "build")
     initial = Object("value", source, defines=["VALUE=1"])
     changed = Object("value", source, defines=["VALUE=2"])
 

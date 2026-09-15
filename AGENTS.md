@@ -28,7 +28,8 @@ apply formatting.
 Coverage checks require 100% line and branch coverage and generate terminal and
 HTML reports.
 
-The test suite requires `gcc`, `ar`, and GNU Make. Missing build tools are test
+The test suite requires `cc`, `ar`, and `make`. The default macOS tools are
+supported and require no Homebrew installation. Missing build tools are test
 errors rather than skips.
 
 ## Design constraints

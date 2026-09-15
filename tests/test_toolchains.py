@@ -3,7 +3,16 @@ from pathlib import Path
 import pytest
 
 import xtc_build.toolchains as toolchains
-from xtc_build import BuildContext, GnuToolchain, Object, SharedLibrary
+from xtc_build import Archive, BuildContext, GnuToolchain, Object, SharedLibrary
+
+
+def test_default_toolchain_uses_system_c_tools(tmp_path: Path) -> None:
+    context = BuildContext(tmp_path)
+    obj = Object("member", "member.c")
+    archive = Archive("example", objects=[obj])
+
+    assert obj.command(context).argv[0] == "cc"
+    assert archive.command(context).argv[0] == "ar"
 
 
 def test_darwin_shared_library_commands(

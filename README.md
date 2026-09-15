@@ -17,8 +17,9 @@ directory.
 python -m pip install .
 ```
 
-Development requires `gcc`, `ar`, and GNU Make. Missing tools are reported as
-test errors rather than skipped tests. Install `uv` from the
+Development requires `cc`, `ar`, and `make`. On macOS, the system-provided
+Apple Clang toolchain is sufficient; Homebrew is not required. Missing tools
+are reported as test errors rather than skipped tests. Install `uv` from the
 [official installation page](https://docs.astral.sh/uv/getting-started/installation/),
 or directly with:
 
@@ -58,15 +59,11 @@ from xtc_build import (
     Archive,
     BuildContext,
     ExternalLibrary,
-    GnuToolchain,
     Object,
     SharedLibrary,
 )
 
-ctx = BuildContext(
-    build_dir="build",
-    toolchain=GnuToolchain(cc="gcc", ar="ar"),
-)
+ctx = BuildContext(build_dir="build")
 
 helper = Object(
     "helper",
@@ -86,6 +83,16 @@ library = SharedLibrary(
     libraries=[math],
     link_flags=["-Wl,--no-undefined"],
 )
+```
+
+The default `GnuToolchain` uses the system `cc` and `ar` commands. On macOS,
+`cc` selects Apple Clang and shared libraries use the native `.dylib` format.
+A specific compatible compiler can still be selected explicitly:
+
+```python
+from xtc_build import GnuToolchain
+
+ctx = BuildContext(toolchain=GnuToolchain(cc="gcc"))
 ```
 
 Every artifact is independently buildable. Building a composite artifact also
