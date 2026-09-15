@@ -3,6 +3,7 @@
 from ._version import resolve_version
 from .artifacts import (
     Archive,
+    Arguments,
     ExternalArchive,
     ExternalLibrary,
     ExternalObject,
@@ -17,6 +18,7 @@ from .toolchains import GnuToolchain
 
 __all__ = [
     "Archive",
+    "Arguments",
     "BuildContext",
     "BuildGraph",
     "Command",

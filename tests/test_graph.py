@@ -42,6 +42,23 @@ def test_graph_is_topological_and_commands_are_inspectable(tmp_path: Path) -> No
     assert "-lm" in graph.command(shared).argv
 
 
+def test_flag_strings_are_split_like_shell_arguments() -> None:
+    obj = Object("flags", "flags.c", compile_flags='-O2 -DNAME="hello world"')
+    archive = Archive("flags", objects=[obj], archive_flags='D "--plugin=some path"')
+    external = ExternalLibrary("example", link_flags='-L"library path" -lexample')
+    shared = SharedLibrary(
+        "flags",
+        objects=[Object("pic", "pic.c", pic=True)],
+        libraries=[external],
+        link_flags='-Wl,--as-needed "-Wl,some path"',
+    )
+
+    assert obj.compile_flags == ("-O2", "-DNAME=hello world")
+    assert archive.archive_flags == ("D", "--plugin=some path")
+    assert external.link_flags == ("-Llibrary path", "-lexample")
+    assert shared.link_flags == ("-Wl,--as-needed", "-Wl,some path")
+
+
 def test_an_artifact_name_cannot_escape_the_build_directory() -> None:
     with pytest.raises(ValueError, match="invalid artifact name"):
         Object("../outside", "source.c")

@@ -13,6 +13,7 @@ from .artifacts import (
     ExternalSharedLibrary,
     Object,
     SharedLibrary,
+    normalize_arguments,
 )
 from .command import Command
 
@@ -61,10 +62,14 @@ class GnuToolchain:
     def object_command(self, obj: Object, context: BuildContext) -> Command:
         output = self.object_output(obj, context)
         argv = [self.cc]
-        argv.extend(obj.compile_flags)
+        if not obj.override_flags:
+            argv.extend(normalize_arguments(context.compile_flags))
+        argv.extend(normalize_arguments(obj.compile_flags))
         if obj.pic and sys.platform != "win32":
             argv.append("-fPIC")
         argv.extend(f"-I{path}" for path in obj.includes)
+        if not obj.override_defines:
+            argv.extend(f"-D{definition}" for definition in context.defines)
         argv.extend(f"-D{definition}" for definition in obj.defines)
         argv.extend(
             [
@@ -134,7 +139,9 @@ class GnuToolchain:
                     if runtime_path not in runtime_paths:
                         runtime_paths.append(runtime_path)
         argv.extend(f"-Wl,-rpath,{path}" for path in runtime_paths)
-        argv.extend(library.link_flags)
+        if not library.override_flags:
+            argv.extend(normalize_arguments(context.link_flags))
+        argv.extend(normalize_arguments(library.link_flags))
         return Command(
             argv=tuple(argv),
             inputs=artifact_inputs,

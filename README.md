@@ -75,14 +75,18 @@ from xtc_build import (
     SharedLibrary,
 )
 
-ctx = BuildContext(build_dir="build")
+ctx = BuildContext(
+    build_dir="build",
+    compile_flags="-O2 -Wall",
+    defines=["PROJECT_BUILD=1"],
+)
 
 helper = Object(
     "helper",
     source="src/helper.c",
     inputs=["include/helper.h"],
     includes=["include"],
-    compile_flags=["-O2", "-Wall"],
+    compile_flags=["-Wconversion"],
     pic=True,
 )
 api = Object("api", source="src/api.c", includes=["include"], pic=True)
@@ -96,6 +100,17 @@ library = SharedLibrary(
     link_flags=["-Wl,--no-undefined"],
 )
 ```
+
+Flag fields such as `compile_flags`, `archive_flags`, and `link_flags` accept
+either a sequence of arguments or a shell-like string. Strings are parsed with
+`shlex.split()`, including quote handling, but commands are still executed
+without a shell.
+
+`BuildContext` provides default `compile_flags`, `link_flags`, and `defines`.
+Artifact-specific values are appended after these defaults. Set
+`override_flags=True` on an `Object` or `SharedLibrary` to ignore the matching
+context flags, or `override_defines=True` on an `Object` to ignore context
+definitions.
 
 The default `GnuToolchain` uses the system `cc` and `ar` commands. On macOS,
 `cc` selects Apple Clang and shared libraries use the native `.dylib` format.

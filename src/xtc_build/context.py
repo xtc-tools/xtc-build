@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .artifacts import Artifact
+from .artifacts import Arguments, Artifact, normalize_arguments
 from .graph import BuildGraph
 from .toolchains import GnuToolchain
 
@@ -21,9 +21,15 @@ class BuildContext:
 
     build_dir: Path | str = Path("build")
     toolchain: GnuToolchain = field(default_factory=GnuToolchain)
+    compile_flags: Arguments = ()
+    link_flags: Arguments = ()
+    defines: Sequence[str] = ()
 
     def __post_init__(self) -> None:
         self.build_dir = Path(self.build_dir)
+        self.compile_flags = normalize_arguments(self.compile_flags)
+        self.link_flags = normalize_arguments(self.link_flags)
+        self.defines = tuple(self.defines)
 
     def graph(self, *targets: Artifact) -> BuildGraph:
         if not targets:

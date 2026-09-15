@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shlex
 from collections.abc import Sequence
 from dataclasses import dataclass
 from os import PathLike
@@ -14,6 +15,11 @@ if TYPE_CHECKING:
     from .context import BuildContext
 
 Pathish = str | PathLike[str]
+Arguments = str | Sequence[str]
+
+
+def normalize_arguments(value: Arguments) -> tuple[str, ...]:
+    return tuple(shlex.split(value) if isinstance(value, str) else value)
 
 
 def _validate_name(name: str) -> None:
@@ -27,12 +33,12 @@ class ExternalLibrary:
     """An already-built library represented by its linker arguments."""
 
     name: str
-    link_flags: Sequence[str] = ()
+    link_flags: Arguments = ()
 
     def __post_init__(self) -> None:
         if not self.name:
             raise ValueError("an external library needs a name")
-        object.__setattr__(self, "link_flags", tuple(self.link_flags))
+        object.__setattr__(self, "link_flags", normalize_arguments(self.link_flags))
 
 
 @dataclass(frozen=True)
@@ -79,7 +85,9 @@ class Object:
     inputs: Sequence[Pathish] = ()
     includes: Sequence[Pathish] = ()
     defines: Sequence[str] = ()
-    compile_flags: Sequence[str] = ()
+    compile_flags: Arguments = ()
+    override_flags: bool = False
+    override_defines: bool = False
     pic: bool = False
 
     def __post_init__(self) -> None:
@@ -88,7 +96,9 @@ class Object:
         object.__setattr__(self, "inputs", tuple(Path(p) for p in self.inputs))
         object.__setattr__(self, "includes", tuple(Path(p) for p in self.includes))
         object.__setattr__(self, "defines", tuple(self.defines))
-        object.__setattr__(self, "compile_flags", tuple(self.compile_flags))
+        object.__setattr__(
+            self, "compile_flags", normalize_arguments(self.compile_flags)
+        )
 
     def dependencies(self) -> tuple[Artifact, ...]:
         return ()
@@ -131,12 +141,14 @@ class Archive:
 
     name: str
     objects: Sequence[Object | ExternalObject]
-    archive_flags: Sequence[str] = ()
+    archive_flags: Arguments = ()
 
     def __post_init__(self) -> None:
         _validate_name(self.name)
         object.__setattr__(self, "objects", tuple(self.objects))
-        object.__setattr__(self, "archive_flags", tuple(self.archive_flags))
+        object.__setattr__(
+            self, "archive_flags", normalize_arguments(self.archive_flags)
+        )
 
     def dependencies(self) -> tuple[Artifact, ...]:
         return tuple(obj for obj in self.objects if isinstance(obj, Object))
@@ -160,7 +172,8 @@ class SharedLibrary:
     objects: Sequence[Object | ExternalObject] = ()
     archives: Sequence[Archive | ExternalArchive] = ()
     libraries: Sequence[ExternalLibrary | ExternalSharedLibrary | SharedLibrary] = ()
-    link_flags: Sequence[str] = ()
+    link_flags: Arguments = ()
+    override_flags: bool = False
     require_pic: bool = True
 
     def __post_init__(self) -> None:
@@ -168,7 +181,7 @@ class SharedLibrary:
         object.__setattr__(self, "objects", tuple(self.objects))
         object.__setattr__(self, "archives", tuple(self.archives))
         object.__setattr__(self, "libraries", tuple(self.libraries))
-        object.__setattr__(self, "link_flags", tuple(self.link_flags))
+        object.__setattr__(self, "link_flags", normalize_arguments(self.link_flags))
         if self.require_pic:
             pic_inputs: list[Object | ExternalObject | ExternalArchive] = list(
                 self.objects

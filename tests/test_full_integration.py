@@ -102,7 +102,12 @@ def _create_external_inputs(
 
 
 def _declare_complete_library(tmp_path: Path) -> tuple[BuildContext, SharedLibrary]:
-    context = BuildContext(tmp_path / "build")
+    context = BuildContext(
+        tmp_path / "build",
+        compile_flags="-Wall",
+        link_flags="-L.",
+        defines=["XTC_BUILD_CONTEXT=1"],
+    )
     external_object, external_archive, external_shared = _create_external_inputs(
         tmp_path, context
     )
@@ -142,7 +147,7 @@ def _declare_complete_library(tmp_path: Path) -> tuple[BuildContext, SharedLibra
     shared_object = Object("shared", shared_source, pic=True)
     built_shared = SharedLibrary("built-dependency", objects=[shared_object])
     api_object = Object("api", api_source, pic=True)
-    system_math = ExternalLibrary("math", link_flags=["-lm"])
+    system_math = ExternalLibrary("math", link_flags="-lm")
     library = SharedLibrary(
         "complete",
         objects=[api_object, direct_object, external_object],

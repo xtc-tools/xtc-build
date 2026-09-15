@@ -22,6 +22,56 @@ def test_default_toolchain_uses_system_c_tools(tmp_path: Path) -> None:
     assert archive.command(context).argv[0] == "ar"
 
 
+def test_context_defaults_and_artifact_overrides(tmp_path: Path) -> None:
+    context = BuildContext(
+        tmp_path,
+        compile_flags='-O2 "-DDEFAULT FLAG"',
+        link_flags="-Wl,--default-link",
+        defines=["CONTEXT=1"],
+    )
+    obj = Object(
+        "member",
+        "member.c",
+        defines=["OBJECT=2"],
+        compile_flags="-Wall",
+        pic=True,
+    )
+    object_argv = obj.command(context).argv
+    assert object_argv.index("-O2") < object_argv.index("-Wall")
+    assert object_argv.index("-DCONTEXT=1") < object_argv.index("-DOBJECT=2")
+    assert "-DDEFAULT FLAG" in object_argv
+
+    overriding = Object(
+        "overriding",
+        "overriding.c",
+        defines=["OBJECT=2"],
+        compile_flags="-Wall",
+        override_flags=True,
+        override_defines=True,
+    )
+    overriding_argv = overriding.command(context).argv
+    assert "-O2" not in overriding_argv
+    assert "-DCONTEXT=1" not in overriding_argv
+    assert "-Wall" in overriding_argv
+    assert "-DOBJECT=2" in overriding_argv
+
+    library = SharedLibrary("example", objects=[obj], link_flags="-Wl,--artifact-link")
+    library_argv = library.command(context).argv
+    assert library_argv.index("-Wl,--default-link") < library_argv.index(
+        "-Wl,--artifact-link"
+    )
+
+    overriding_library = SharedLibrary(
+        "overriding",
+        objects=[obj],
+        link_flags="-Wl,--artifact-link",
+        override_flags=True,
+    )
+    overriding_library_argv = overriding_library.command(context).argv
+    assert "-Wl,--default-link" not in overriding_library_argv
+    assert "-Wl,--artifact-link" in overriding_library_argv
+
+
 def test_linux_shared_library_commands(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
