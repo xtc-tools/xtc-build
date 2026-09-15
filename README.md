@@ -168,9 +168,7 @@ with `Object(inputs=[...])`.
 ## Versioning
 
 Package versions are derived from Git tags by `setuptools-scm`. Release tags
-must use the `xtc-build-vX.Y.Z` form, for example:
-
-Create an annotated tag for each release:
+must use the `xtc-build-vX.Y.Z` form. Create an annotated tag for each release:
 
 ```sh
 git tag -a xtc-build-v1.2.3 -m "xtc-build 1.2.3"
@@ -179,6 +177,14 @@ git tag -a xtc-build-v1.2.3 -m "xtc-build 1.2.3"
 A build at that tag has version `1.2.3`; later commits receive a development
 version derived from the tag and Git revision. Builds without Git metadata use
 `0.0.0` as a fallback.
+
+After all checks pass, pushes to `main` publish development distributions to
+[TestPyPI](https://test.pypi.org/project/xtc-build/), while
+`xtc-build-vX.Y.Z` tags publish releases to
+[PyPI](https://pypi.org/project/xtc-build/). Both publication jobs in
+`.github/workflows/ci.yml` use trusted publishing through the `testpypi` and
+`pypi` GitHub environments; those trusted publishers must be configured on the
+corresponding package indexes before the jobs can authenticate.
 
 ## License
 
