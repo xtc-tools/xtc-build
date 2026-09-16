@@ -19,7 +19,7 @@ from xtc_build import (
     SharedLibrary,
 )
 
-Backend = Literal["immediate", "makefile"]
+Backend = Literal["immediate", "makefile", "ninja"]
 
 
 def _write_source(path: Path, source: str) -> Path:
@@ -157,7 +157,7 @@ def _declare_complete_library(tmp_path: Path) -> tuple[BuildContext, SharedLibra
     return context, library
 
 
-@pytest.mark.parametrize("backend", ["immediate", "makefile"])
+@pytest.mark.parametrize("backend", ["immediate", "makefile", "ninja"])
 def test_complete_shared_library_build_and_load(
     tmp_path: Path, backend: Backend
 ) -> None:
@@ -165,9 +165,12 @@ def test_complete_shared_library_build_and_load(
 
     if backend == "immediate":
         library.build(context)
-    else:
+    elif backend == "makefile":
         makefile = context.write_makefile(tmp_path / "Makefile", targets=[library])
         subprocess.run(["make", "-f", str(makefile)], check=True, cwd=tmp_path)
+    else:
+        ninja_file = context.write_ninja(tmp_path / "build.ninja", targets=[library])
+        subprocess.run(["ninja", "-f", str(ninja_file)], check=True, cwd=tmp_path)
 
     loaded = ctypes.CDLL(str(library.output(context)))
     loaded.combined_value.restype = ctypes.c_int

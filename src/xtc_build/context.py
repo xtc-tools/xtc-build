@@ -53,3 +53,14 @@ class BuildContext:
 
         selected = tuple(targets)
         return write(self.graph(*selected), path)
+
+    def write_ninja(
+        self,
+        path: str | Path,
+        *,
+        targets: Iterable[Artifact],
+    ) -> Path:
+        from .ninja import write
+
+        selected = tuple(targets)
+        return write(self.graph(*selected), path)

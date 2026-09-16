@@ -103,14 +103,23 @@ def make_command_fragment(command: Command) -> str:
     return escape_make_recipe(posix_shell_fragment(command))
 
 
+def posix_recipe_fragments(command: Command) -> tuple[str, ...]:
+    """Render filesystem setup and invocation as POSIX shell fragments."""
+
+    parents = tuple(dict.fromkeys(output.parent for output in command.outputs))
+    fragments = [posix_argv_fragment(("mkdir", "-p", *(str(p) for p in parents)))]
+    if command.remove_outputs_first:
+        fragments.append(
+            posix_argv_fragment(("rm", "-f", *(str(p) for p in command.outputs)))
+        )
+    fragments.append(posix_shell_fragment(command))
+    return tuple(fragments)
+
+
 def make_recipe(command: Command) -> str:
     """Render a complete, potentially multi-line Make recipe."""
 
-    parents = tuple(dict.fromkeys(output.parent for output in command.outputs))
-    fragments = [make_argv_fragment(("mkdir", "-p", *(str(p) for p in parents)))]
-    if command.remove_outputs_first:
-        fragments.append(
-            make_argv_fragment(("rm", "-f", *(str(p) for p in command.outputs)))
-        )
-    fragments.append(make_command_fragment(command))
-    return "\n".join(f"\t{fragment}" for fragment in fragments)
+    return "\n".join(
+        f"\t{escape_make_recipe(fragment)}"
+        for fragment in posix_recipe_fragments(command)
+    )

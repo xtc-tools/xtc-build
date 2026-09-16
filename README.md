@@ -2,14 +2,15 @@
 
 `xtc-build` is a small Python library for describing C object files, static
 archives, and shared libraries as an explicit dependency graph. The same graph
-can be inspected, built immediately from Python, or written as a GNU Makefile.
+can be inspected, built immediately from Python, or written as a GNU Makefile
+or Ninja build file.
 
 It deliberately has no mandatory project object. Artifacts describe what must
 be built; a lightweight `BuildContext` supplies the toolchain and output
 directory.
 
-> **Status:** early alpha. The initial backend targets GCC/Clang-compatible C
-> toolchains and GNU Make on Unix-like systems.
+> **Status:** early alpha. The initial backends target GCC/Clang-compatible C
+> toolchains, GNU Make, and Ninja on Unix-like systems.
 
 ## Installation
 
@@ -29,8 +30,9 @@ python -m pip install --pre --upgrade \
 
 ## Development installation
 
-Development requires `cc`, `ar`, and `make`. On macOS, the system-provided
-Apple Clang toolchain is sufficient; Homebrew is not required. Missing tools
+Development requires `cc`, `ar`, and `make`; `uv sync` installs Ninja. On
+macOS, the system-provided Apple Clang toolchain is sufficient; Homebrew is not
+required. Missing tools
 are reported as test errors rather than skipped tests. Install `uv` from the
 [official installation page](https://docs.astral.sh/uv/getting-started/installation/),
 or directly with:
@@ -175,8 +177,9 @@ library = SharedLibrary(
 
 `ExternalObject`, `ExternalArchive`, and `ExternalSharedLibrary` have no build
 command and are not graph nodes. Their exact paths, including extensions, are
-explicit command inputs and Make prerequisites. They must exist before
-immediate execution or be produced independently before Make needs them. Set
+explicit command inputs and Make or Ninja prerequisites. They must exist before
+immediate execution or be produced independently before a generated backend
+needs them. Set
 `pic=True` when an object or archive is suitable for linking into a shared
 library. On Linux and macOS, each external shared library's resolved parent
 directory is added to the linked library's runtime search path. Windows does
@@ -217,6 +220,24 @@ make -f build/Makefile clean
 Object rules emit GCC-compatible dependency files (`-MMD -MP`). Declare
 non-discoverable inputs such as generated headers and linker scripts explicitly
 with `Object(inputs=[...])`.
+
+## Generating a Ninja build file
+
+```python
+ctx.write_ninja("build/build.ninja", targets=[core, library])
+```
+
+Run Ninja from the directory against which source paths were declared:
+
+```sh
+ninja -f build/build.ninja
+ninja -f build/build.ninja -t clean
+```
+
+Ninja consumes compiler depfiles with `deps = gcc`, so GCC and Clang discovered
+headers participate in incremental rebuilding. Explicit and external inputs are
+emitted as build-edge dependencies. The build file is rewritten only when its
+content changes.
 
 ## Design notes
 

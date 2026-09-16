@@ -28,9 +28,9 @@ apply formatting.
 Coverage checks require 100% line and branch coverage and generate terminal and
 HTML reports.
 
-The test suite requires `cc`, `ar`, and `make`. The default macOS tools are
-supported and require no Homebrew installation. Missing build tools are test
-errors rather than skips.
+The test suite requires `cc`, `ar`, `make`, and `ninja`; `uv sync` installs
+Ninja. The default macOS tools are supported and require no Homebrew
+installation. Missing build tools are test errors rather than skips.
 
 ## Design constraints
 
@@ -38,8 +38,8 @@ errors rather than skips.
 - Keep toolchain-specific command construction separate from graph traversal.
 - Represent commands as argument vectors; immediate execution must not use
   `shell=True`.
-- Immediate execution and Makefile generation must consume the same graph and
-  commands.
+- Immediate execution, Makefile generation, and Ninja generation must consume
+  the same graph and commands.
 - Dependencies between generated artifacts must remain explicit.
 - Avoid introducing a mandatory project/global target registry. Configuration
   belongs in `BuildContext`; optional grouping can be layered on top.
