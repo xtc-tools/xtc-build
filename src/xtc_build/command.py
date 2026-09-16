@@ -116,10 +116,13 @@ def posix_recipe_fragments(command: Command) -> tuple[str, ...]:
     return tuple(fragments)
 
 
-def make_recipe(command: Command) -> str:
-    """Render a complete, potentially multi-line Make recipe."""
+def posix_recipe(command: Command) -> str:
+    """Render setup and invocation as one POSIX shell command."""
 
-    return "\n".join(
-        f"\t{escape_make_recipe(fragment)}"
-        for fragment in posix_recipe_fragments(command)
-    )
+    return " && ".join(posix_recipe_fragments(command))
+
+
+def make_recipe(command: Command) -> str:
+    """Render a complete one-line Make recipe."""
+
+    return f"\t{escape_make_recipe(posix_recipe(command))}"

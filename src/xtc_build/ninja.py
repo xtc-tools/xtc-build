@@ -8,7 +8,7 @@ from pathlib import Path
 from ninja import ninja_syntax
 
 from .artifacts import Object
-from .command import Command, posix_recipe_fragments
+from .command import Command, posix_recipe
 from .graph import BuildGraph
 
 
@@ -17,8 +17,7 @@ def _unique_paths(paths: tuple[Path, ...]) -> list[str]:
 
 
 def _command_fragment(command: Command) -> str:
-    fragment = " && ".join(posix_recipe_fragments(command))
-    return ninja_syntax.escape(fragment)
+    return ninja_syntax.escape(posix_recipe(command))
 
 
 def render(graph: BuildGraph, build_file: str | Path) -> str:

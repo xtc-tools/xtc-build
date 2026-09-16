@@ -51,12 +51,15 @@ def test_makefile_renders_command_environment_and_working_directory(
 
     text = makefile.read_text(encoding="utf-8")
     command = context.graph(obj).command(obj)
+    recipe = make_recipe(command)
+    assert "\n" not in recipe
+    assert " && " in recipe
     assert posix_shell_fragment(command) == (
         "cd 'working $directory' && env 'BUILD_MODE=debug $build' "
         + " ".join(command.argv)
     )
-    assert make_recipe(command) in text
-    assert f"\t{make_command_fragment(command)}" in text
+    assert recipe in text
+    assert make_command_fragment(command) in recipe
     assert "working $$directory" in text
     assert "debug $$build" in text
 
