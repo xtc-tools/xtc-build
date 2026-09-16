@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import shlex
 from pathlib import Path
 
 from .artifacts import Object
+from .command import command_state_path, make_argv_fragment, make_recipe
 from .graph import BuildGraph
 
 
@@ -45,10 +45,12 @@ def render(graph: BuildGraph) -> str:
 
     depfiles: list[Path] = []
     outputs: list[Path] = []
+    state_paths: list[Path] = []
     for node in graph.topological_order():
         command = graph.command(node)
         output = command.outputs[0]
         outputs.extend(command.outputs)
+        state_paths.append(command_state_path(command))
         prerequisites = _unique(list(command.inputs))
         escaped_prerequisites = " ".join(_escape(path) for path in prerequisites)
         # Rebuilding a generated Makefile must also reconsider every command:
@@ -57,36 +59,16 @@ def render(graph: BuildGraph) -> str:
         lines.append(
             f"{_escape(output)}: {escaped_prerequisites} {makefile_input}".rstrip()
         )
-        parents = _unique([path.parent for path in command.outputs])
-        lines.append(
-            "\tmkdir -p " + " ".join(shlex.quote(str(path)) for path in parents)
-        )
-        if command.remove_outputs_first:
-            lines.append(
-                "\trm -f "
-                + " ".join(shlex.quote(str(path)) for path in command.outputs)
-            )
-        invocation = shlex.join(command.argv)
-        if command.env:
-            environment = " ".join(
-                f"{key}={shlex.quote(value)}" for key, value in command.env.items()
-            )
-            invocation = f"env {environment} {invocation}"
-        if command.cwd:
-            invocation = f"cd {shlex.quote(str(command.cwd))} && {invocation}"
-        lines.extend([f"\t{invocation}", ""])
+        lines.extend([make_recipe(command), ""])
         if isinstance(node, Object):
             depfiles.append(node.depfile(graph.context))
 
-    clean_files = (
-        outputs
-        + depfiles
-        + [output.with_name(output.name + ".xtc-build.json") for output in outputs]
-    )
+    clean_files = outputs + depfiles + state_paths
     lines.extend(
         [
             "clean:",
-            "\trm -f " + " ".join(shlex.quote(str(path)) for path in clean_files),
+            "\t"
+            + make_argv_fragment(("rm", "-f", *(str(path) for path in clean_files))),
             "",
         ]
     )

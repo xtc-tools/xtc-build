@@ -14,6 +14,18 @@ from xtc_build import (
     Object,
     SharedLibrary,
 )
+from xtc_build.command import (
+    make_argv_fragment,
+    make_command_fragment,
+    make_recipe,
+    posix_shell_fragment,
+)
+
+
+def test_make_argv_fragment_quotes_shell_arguments_and_make_variables() -> None:
+    assert make_argv_fragment(["rm", "-f", "build/$output file"]) == (
+        "rm -f 'build/$$output file'"
+    )
 
 
 class CommandMetadataToolchain(GnuToolchain):
@@ -21,8 +33,8 @@ class CommandMetadataToolchain(GnuToolchain):
         command = super().object_command(obj, context)
         return replace(
             command,
-            cwd=Path("working directory"),
-            env={"BUILD_MODE": "debug build"},
+            cwd=Path("working $directory"),
+            env={"BUILD_MODE": "debug $build"},
         )
 
 
@@ -38,8 +50,15 @@ def test_makefile_renders_command_environment_and_working_directory(
     makefile = context.write_makefile(tmp_path / "build.mk", targets=[obj])
 
     text = makefile.read_text(encoding="utf-8")
-    assert "cd 'working directory' &&" in text
-    assert "env BUILD_MODE='debug build'" in text
+    command = context.graph(obj).command(obj)
+    assert posix_shell_fragment(command) == (
+        "cd 'working $directory' && env 'BUILD_MODE=debug $build' "
+        + " ".join(command.argv)
+    )
+    assert make_recipe(command) in text
+    assert f"\t{make_command_fragment(command)}" in text
+    assert "working $$directory" in text
+    assert "debug $$build" in text
 
 
 def test_makefile_rejects_duplicate_target_aliases(tmp_path: Path) -> None:

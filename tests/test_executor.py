@@ -14,6 +14,7 @@ from xtc_build import (
     GnuToolchain,
     Object,
 )
+from xtc_build.command import serialize_command
 
 
 class NoOutputToolchain(GnuToolchain):
@@ -78,15 +79,22 @@ def test_executor_reports_an_input_removed_after_build(tmp_path: Path) -> None:
         context.build(obj)
 
 
-def test_executor_recovers_from_a_corrupt_signature(tmp_path: Path) -> None:
+def test_executor_compares_serialized_command_state(tmp_path: Path) -> None:
     source = tmp_path / "source.c"
     source.write_text("int value;\n", encoding="utf-8")
     context = BuildContext(tmp_path / "build")
     obj = Object("source", source)
     context.build(obj)
-    signature = obj.output(context).with_name("source.o.xtc-build.json")
-    signature.write_text("not JSON", encoding="utf-8")
+    state_path = obj.output(context).with_name("source.o.xtc-build.json")
+    recorded = state_path.read_text(encoding="utf-8")
+    assert recorded == serialize_command(obj.command(context))
+    assert '"argv"' in recorded
+    assert '"schema_version": 1' in recorded
 
+    state_path.unlink()
+    assert context.build(obj) == (obj,)
+
+    state_path.write_text("different command state\n", encoding="utf-8")
     assert context.build(obj) == (obj,)
 
 

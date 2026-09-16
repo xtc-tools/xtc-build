@@ -2,33 +2,12 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 import os
 import subprocess
-from pathlib import Path
 
 from .artifacts import Artifact
-from .command import Command
+from .command import Command, command_state_path, serialize_command
 from .graph import BuildGraph
-
-
-def _signature(command: Command) -> str:
-    value = {
-        "argv": command.argv,
-        "cwd": str(command.cwd) if command.cwd else None,
-        "env": sorted(command.env.items()),
-        "inputs": [str(path) for path in command.inputs],
-        "outputs": [str(path) for path in command.outputs],
-        "remove_outputs_first": command.remove_outputs_first,
-    }
-    encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(encoded).hexdigest()
-
-
-def _signature_path(command: Command) -> Path:
-    output = command.outputs[0]
-    return output.with_name(output.name + ".xtc-build.json")
 
 
 def _is_stale(command: Command, dependency_rebuilt: bool) -> bool:
@@ -37,12 +16,12 @@ def _is_stale(command: Command, dependency_rebuilt: bool) -> bool:
     if any(not output.exists() for output in command.outputs):
         return True
 
-    signature_path = _signature_path(command)
+    state_path = command_state_path(command)
     try:
-        recorded = json.loads(signature_path.read_text(encoding="utf-8"))["signature"]
-    except (OSError, KeyError, json.JSONDecodeError):
+        recorded = state_path.read_text(encoding="utf-8")
+    except OSError:
         return True
-    if recorded != _signature(command):
+    if recorded != serialize_command(command):
         return True
 
     missing = [path for path in command.inputs if not path.exists()]
@@ -86,11 +65,8 @@ def execute(graph: BuildGraph) -> tuple[Artifact, ...]:
             raise RuntimeError(
                 f"command did not create expected output: {missing_outputs[0]}"
             )
-        signature_path = _signature_path(command)
-        signature_path.write_text(
-            json.dumps({"signature": _signature(command)}, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        state_path = command_state_path(command)
+        state_path.write_text(serialize_command(command), encoding="utf-8")
         rebuilt.add(node)
         ordered_rebuilt.append(node)
 
